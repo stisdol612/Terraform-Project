@@ -65,12 +65,12 @@ resource "aws_subnet" "database-subnet-2" {
 }
 
 resource "aws_db_instance" "default" {
-  allocated_storage    = 20
+  allocated_storage    = 10
   db_subnet_group_name = aws_db_subnet_group.default.id
   engine               = "mysql"
   engine_version       = "8.0.28"
   instance_class       = "db.t2.micro"
-  multi_az             = true
+  multi_az             = false
   name                 = "LUDB"
   username             = "admin"
   password             = "password"
