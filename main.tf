@@ -74,7 +74,7 @@ resource "aws_instance" "Web_server" {
   ami                    = "ami-0cff7528ff583bf9a"
   instance_type          = "t2.micro"
   availability_zone      = "us-east-1a"
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  vpc_security_group_ids = [aws_security_group.web_server_sg.id]
   subnet_id              = aws_subnet.web_subnet.id
   user_data              = file("apache.sh")
   tags = {
@@ -86,8 +86,8 @@ resource "aws_instance" "Web_server" {
 resource "aws_instance" "App_Server" {
   ami                    = "ami-0cff7528ff583bf9a"
   instance_type          = "t2.micro"
-  availability_zone      = "us-east-1b"
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  availability_zone      = "us-east-1a"
+  vpc_security_group_ids = [aws_security_group.web_server_sg.id]
   subnet_id              = aws_subnet.app_subnet.id
   user_data              = file("apache.sh")
   tags = {
@@ -96,9 +96,8 @@ resource "aws_instance" "App_Server" {
 
 }
 
-resource "aws_security_group" "web_sg" {
+resource "aws_security_group" "lb_sg" {
   name        = "Web-SG"
-  description = "Allow inbound traffic HTTP"
   vpc_id      = aws_vpc.lu_vpc.id
 
   ingress {
@@ -108,21 +107,13 @@ resource "aws_security_group" "web_sg" {
     protocol    = "tcp"
   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = {
-    Name = "Web_Server_SG"
+    Name = "LB_Server_SG"
   }
 }
 
-resource "aws_security_group" "webserver-sg" {
-  name        = "Webserver-SG"
-  description = "Allow inbound traffic from ALB"
+resource "aws_security_group" "web_server_sg" {
+  name        = "Webserver_SG"
   vpc_id      = aws_vpc.lu_vpc.id
 
   ingress {
@@ -130,32 +121,32 @@ resource "aws_security_group" "webserver-sg" {
     from_port       = 80
     to_port         = 80
     protocol        = "tcp"
-    security_groups = [aws_security_group.web_sg.id]
+    security_groups = [aws_security_group.lb_sg.id]
   }
 
   tags = {
-    Name = "App_Server_SG"
+    Name = "Web_Server_SG"
   }
 }
 
 
-resource "aws_lb" "external-elb" {
-  name               = "External-LB"
+resource "aws_lb" "alb" {
+  name               = "ALB"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.web_sg.id]
-  subnets            = [aws_subnet.web_subnet.id, aws_subnet.app_subnet.id]
+  security_groups    = [aws_security_group.lb_sg.id]
+  subnets            = [aws_subnet.web_subnet.id]
 }
 
-resource "aws_lb_target_group" "external-elb" {
-  name     = "ALB-TG"
+resource "aws_lb_target_group" "alb" {
+  name     = "ALB"
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.lu_vpc.id
 }
 
-resource "aws_lb_target_group_attachment" "external-elb1" {
-  target_group_arn = aws_lb_target_group.external-elb.arn
+resource "aws_lb_target_group_attachment" "alb_1" {
+  target_group_arn = aws_lb_target_group.alb.arn
   target_id        = aws_instance.Web_server.id
   port             = 80
 
@@ -164,8 +155,8 @@ resource "aws_lb_target_group_attachment" "external-elb1" {
   ]
 }
 
-resource "aws_lb_target_group_attachment" "external-elb2" {
-  target_group_arn = aws_lb_target_group.external-elb.arn
+resource "aws_lb_target_group_attachment" "alb_2" {
+  target_group_arn = aws_lb_target_group.alb.arn
   target_id        = aws_instance.App_Server.id
   port             = 80
 
@@ -174,14 +165,14 @@ resource "aws_lb_target_group_attachment" "external-elb2" {
   ]
 }
 
-resource "aws_lb_listener" "external-elb" {
-  load_balancer_arn = aws_lb.external-elb.arn
+resource "aws_lb_listener" "alb_listener" {
+  load_balancer_arn = aws_lb.alb.arn
   port              = "80"
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.external-elb.arn
+    target_group_arn = aws_lb_target_group.alb.arn
   }
 }
 
@@ -195,7 +186,17 @@ resource "aws_db_instance" "RDS" {
   username             = "admin"
   password             = "password"
   skip_final_snapshot  = true
+  db_subnet_group_name = aws_db_subnet_group.rds_group.id
 
+
+  tags = {
+    Name = "RDS database"
+  }
+}
+
+resource "aws_db_subnet_group" "rds_group" {
+  name       = "subnet group"
+  subnet_ids = [aws_subnet.database_subnet.id]
 
   tags = {
     Name = "RDS subnet group"
@@ -204,5 +205,5 @@ resource "aws_db_instance" "RDS" {
 
 output "lb_dns_name" {
   description = "The DNS name of the load balancer"
-  value       = aws_lb.external-elb.dns_name
+  value       = aws_lb.alb.dns_name
 }
