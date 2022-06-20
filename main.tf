@@ -6,7 +6,7 @@ resource "aws_vpc" "lu_vpc" {
 }
 
 
-resource "aws_subnet" "web_subnet" {
+resource "aws_subnet" "web_subnet_1" {
   vpc_id                  = aws_vpc.lu_vpc.id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "us-east-1a"
@@ -17,10 +17,10 @@ resource "aws_subnet" "web_subnet" {
   }
 }
 
-resource "aws_subnet" "app_subnet" {
+resource "aws_subnet" "web_subnet_2" {
   vpc_id                  = aws_vpc.lu_vpc.id
   cidr_block              = "10.0.2.0/24"
-  availability_zone       = "us-east-1a"
+  availability_zone       = "us-east-1b"
   map_public_ip_on_launch = true
 
   tags = {
@@ -61,12 +61,12 @@ resource "aws_route_table" "web_rt" {
 }
 
 resource "aws_route_table_association" "first" {
-  subnet_id      = aws_subnet.web_subnet.id
+  subnet_id      = aws_subnet.web_subnet_1.id
   route_table_id = aws_route_table.web_rt.id
 }
 
 resource "aws_route_table_association" "second" {
-  subnet_id      = aws_subnet.web_subnet.id
+  subnet_id      = aws_subnet.web_subnet_2.id
   route_table_id = aws_route_table.web_rt.id
 }
 
@@ -75,7 +75,7 @@ resource "aws_instance" "Web_server" {
   instance_type          = "t2.micro"
   availability_zone      = "us-east-1a"
   vpc_security_group_ids = [aws_security_group.web_server_sg.id]
-  subnet_id              = aws_subnet.web_subnet.id
+  subnet_id              = aws_subnet.web_subnet_1.id
   user_data              = file("apache.sh")
   tags = {
     Name = "Web Server"
@@ -86,9 +86,9 @@ resource "aws_instance" "Web_server" {
 resource "aws_instance" "App_Server" {
   ami                    = "ami-0cff7528ff583bf9a"
   instance_type          = "t2.micro"
-  availability_zone      = "us-east-1a"
+  availability_zone      = "us-east-1b"
   vpc_security_group_ids = [aws_security_group.web_server_sg.id]
-  subnet_id              = aws_subnet.app_subnet.id
+  subnet_id              = aws_subnet.web_subnet_1.id
   user_data              = file("apache.sh")
   tags = {
     Name = "App Server"
@@ -135,7 +135,7 @@ resource "aws_lb" "alb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.lb_sg.id]
-  subnets            = [aws_subnet.web_subnet.id]
+  subnets            = [aws_subnet.web_subnet_1.id, aws_subnet.web_subnet_2.id]
 }
 
 resource "aws_lb_target_group" "alb" {
