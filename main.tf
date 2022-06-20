@@ -116,7 +116,7 @@ resource "aws_security_group" "web_sg" {
   }
 
   tags = {
-    Name = "Web-SG"
+    Name = "Web_Server_SG"
   }
 }
 
@@ -134,7 +134,7 @@ resource "aws_security_group" "webserver-sg" {
   }
 
   tags = {
-    Name = "Webserver-SG"
+    Name = "App_Server_SG"
   }
 }
 
