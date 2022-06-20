@@ -37,3 +37,4 @@ terraform.rc
 .vscode
 secrets.tf
 .terraform/providers/registry.terraform.io/hashicorp/aws/3.75.1/windows_amd64/terraform-provider-aws_v3.75.1_x5.exe
+Pics/1.png
