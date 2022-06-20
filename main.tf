@@ -1,4 +1,3 @@
-# Create a VPC
 resource "aws_vpc" "lu_vpc" {
   cidr_block = "10.0.0.0/16"
   tags = {
@@ -6,7 +5,7 @@ resource "aws_vpc" "lu_vpc" {
   }
 }
 
-# Create Web Public Subnet
+
 resource "aws_subnet" "web_subnet" {
   vpc_id                  = aws_vpc.lu_vpc.id
   cidr_block              = "10.0.1.0/24"
@@ -29,7 +28,6 @@ resource "aws_subnet" "app_subnet" {
   }
 }
 
-# Create Database Private Subnet
 resource "aws_subnet" "database_subnet" {
   vpc_id            = aws_vpc.lu_vpc.id
   cidr_block        = "10.0.3.0/24"
@@ -40,7 +38,6 @@ resource "aws_subnet" "database_subnet" {
   }
 }
 
-# Create Internet Gateway
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.lu_vpc.id
 
@@ -49,7 +46,6 @@ resource "aws_internet_gateway" "igw" {
   }
 }
 
-# Create Web layber route table
 resource "aws_route_table" "web_rt" {
   vpc_id = aws_vpc.lu_vpc.id
 
@@ -64,7 +60,6 @@ resource "aws_route_table" "web_rt" {
   }
 }
 
-# Create Web Subnet association with Web route table
 resource "aws_route_table_association" "first" {
   subnet_id      = aws_subnet.web_subnet.id
   route_table_id = aws_route_table.web_rt.id
@@ -75,7 +70,6 @@ resource "aws_route_table_association" "second" {
   route_table_id = aws_route_table.web_rt.id
 }
 
-#Create EC2 Instance
 resource "aws_instance" "Web_server" {
   ami                    = "ami-0cff7528ff583bf9a"
   instance_type          = "t2.micro"
@@ -102,7 +96,6 @@ resource "aws_instance" "App_Server" {
 
 }
 
-# Create Web Security Group
 resource "aws_security_group" "web_sg" {
   name        = "Web-SG"
   description = "Allow inbound traffic HTTP"
