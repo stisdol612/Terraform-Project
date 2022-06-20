@@ -13,7 +13,7 @@ resource "aws_subnet" "web_subnet_1" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "Web Subnet"
+    Name = "Web Subnet 1"
   }
 }
 
@@ -24,17 +24,27 @@ resource "aws_subnet" "web_subnet_2" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "App Subnet"
+    Name = "Web Subnet 2"
   }
 }
 
-resource "aws_subnet" "database_subnet" {
+resource "aws_subnet" "database_subnet_1" {
   vpc_id            = aws_vpc.lu_vpc.id
   cidr_block        = "10.0.3.0/24"
   availability_zone = "us-east-1a"
 
   tags = {
     Name = "Database 1"
+  }
+}
+
+resource "aws_subnet" "database_subnet_2" {
+  vpc_id            = aws_vpc.lu_vpc.id
+  cidr_block        = "10.0.4.0/24"
+  availability_zone = "us-east-1b"
+
+  tags = {
+    Name = "Database-2b"
   }
 }
 
@@ -70,7 +80,7 @@ resource "aws_route_table_association" "second" {
   route_table_id = aws_route_table.web_rt.id
 }
 
-resource "aws_instance" "Web_server" {
+resource "aws_instance" "web_server_1" {
   ami                    = "ami-0cff7528ff583bf9a"
   instance_type          = "t2.micro"
   availability_zone      = "us-east-1a"
@@ -83,12 +93,12 @@ resource "aws_instance" "Web_server" {
 
 }
 
-resource "aws_instance" "App_Server" {
+resource "aws_instance" "web_server_2" {
   ami                    = "ami-0cff7528ff583bf9a"
   instance_type          = "t2.micro"
   availability_zone      = "us-east-1b"
   vpc_security_group_ids = [aws_security_group.web_server_sg.id]
-  subnet_id              = aws_subnet.web_subnet_1.id
+  subnet_id              = aws_subnet.web_subnet_2.id
   user_data              = file("apache.sh")
   tags = {
     Name = "App Server"
@@ -147,21 +157,21 @@ resource "aws_lb_target_group" "alb" {
 
 resource "aws_lb_target_group_attachment" "alb_1" {
   target_group_arn = aws_lb_target_group.alb.arn
-  target_id        = aws_instance.Web_server.id
+  target_id        = aws_instance.web_server_1.id
   port             = 80
 
   depends_on = [
-    aws_instance.Web_server
+    aws_instance.web_server_1
   ]
 }
 
 resource "aws_lb_target_group_attachment" "alb_2" {
   target_group_arn = aws_lb_target_group.alb.arn
-  target_id        = aws_instance.App_Server.id
+  target_id        = aws_instance.web_server_2.id
   port             = 80
 
   depends_on = [
-    aws_instance.App_Server
+    aws_instance.web_server_2
   ]
 }
 
@@ -196,7 +206,7 @@ resource "aws_db_instance" "RDS" {
 
 resource "aws_db_subnet_group" "rds_group" {
   name       = "subnet group"
-  subnet_ids = [aws_subnet.database_subnet.id]
+  subnet_ids = [aws_subnet.database_subnet_1.id, aws_subnet.database_subnet_2.id]
 
   tags = {
     Name = "RDS subnet group"
